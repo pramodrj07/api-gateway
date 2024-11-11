@@ -7,3 +7,11 @@ services:
     endpoints:
       - http://localhost:8082
     loadBalancer: least-connections
+  serviceC:
+    endpoints:
+      - http://localhost:8083
+    loadBalancer: random
+  serviceD:
+    endpoints:
+      - http://localhost:8084
+    loadBalancer: something

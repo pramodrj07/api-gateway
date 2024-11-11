@@ -1,5 +1,5 @@
-FROM golang:1.17-alpine
+FROM golang:1.23-alpine
 WORKDIR /app
 COPY main.go .
-RUN go build -o serviceB .
+RUN go build -o serviceB main.go
 CMD ["./serviceB"]
