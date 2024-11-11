@@ -1,4 +1,4 @@
-package main
+package gateway
 
 import (
 	"context"
@@ -22,16 +22,16 @@ type Gateway struct {
 	watcherChan chan string
 	config      *loadbalancer.Config
 	lock        sync.Mutex
-	log         *log.Logger
+	log         log.Logger
 }
 
-func NewGateway() *Gateway {
+func NewGateway(ctx context.Context, log log.Logger) *Gateway {
 	return &Gateway{
 		ctx:         context.Background(),
 		watcherChan: make(chan string),
 		lock:        sync.Mutex{},
 		config:      nil,
-		log:         log.New(os.Stdout, "API-gateway", log.LstdFlags),
+		log:         log,
 	}
 }
 
@@ -49,9 +49,8 @@ func (g *Gateway) loadConfig(path string) (*loadbalancer.Config, error) {
 	return &config, nil
 }
 
-func main() {
+func (gateway *Gateway) Run() {
 	var err error
-	gateway := NewGateway()
 
 	config, err := gateway.loadConfig("/workspaces/api-gateway/configuration/config.yaml")
 	if err != nil {

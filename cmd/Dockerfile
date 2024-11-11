@@ -1,6 +1,7 @@
 FROM golang:1.23-alpine
 WORKDIR /app
 COPY main.go .
+COPY config.yaml .
 
 ADD . .
 RUN go mod init gateway

@@ -5,7 +5,7 @@ metadata:
   labels:
     app: service-a
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: service-a
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: service-a
-        image: pramodjayathirth/library:servicea:latest
+        image: docker.io/pramodjayathirth/library:servicea
         ports:
         - containerPort: 8081
 
