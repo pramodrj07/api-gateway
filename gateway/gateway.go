@@ -21,15 +21,15 @@ type Gateway struct {
 	ctx         context.Context
 	watcherChan chan string
 	config      *loadbalancer.Config
-	lock        sync.Mutex
-	log         log.Logger
+	lock        *sync.Mutex
+	log         *log.Logger
 }
 
-func NewGateway(ctx context.Context, log log.Logger) *Gateway {
+func NewGateway(ctx context.Context, lock *sync.Mutex, log *log.Logger) *Gateway {
 	return &Gateway{
 		ctx:         context.Background(),
 		watcherChan: make(chan string),
-		lock:        sync.Mutex{},
+		lock:        lock,
 		config:      nil,
 		log:         log,
 	}
@@ -139,7 +139,7 @@ func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 	g.log.Printf("Received request: %s %s", r.Method, r.URL.Path) // Construct the URL and perform the HTTP request
 	serviceName := strings.TrimPrefix(r.URL.Path, "/")
 	g.log.Printf("Service name: %s", serviceName)
-	service, err := loadbalancer.GetService(&g.lock, *g.config, serviceName)
+	service, err := loadbalancer.GetService(g.lock, *g.config, serviceName)
 	if err != nil {
 		// Log if the service is not found
 		// g.log.Printf("Service not found: %v", err)
