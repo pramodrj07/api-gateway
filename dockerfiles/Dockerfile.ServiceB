@@ -1,0 +1,5 @@
+FROM golang:1.23-alpine
+WORKDIR /app
+COPY api-gateway/mockservices/serviceB/main.go .
+RUN go build -o serviceB .
+CMD ["./serviceB"]

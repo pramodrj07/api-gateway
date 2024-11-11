@@ -1,0 +1,9 @@
+services:
+  serviceA:
+    endpoints:
+      - http://localhost:8081
+    loadBalancer: round-robin
+  serviceB:
+    endpoints:
+      - http://localhost:8082
+    loadBalancer: least-connections

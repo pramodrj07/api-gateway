@@ -1,6 +1,6 @@
 module github.com/pramodrj07/api-gateway
 
-go 1.22.2
+go 1.23
 
 require (
 	k8s.io/api v0.31.2
