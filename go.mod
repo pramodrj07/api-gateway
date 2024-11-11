@@ -1,11 +1,10 @@
 module github.com/pramodrj07/api-gateway
 
-go 1.22.0
-
-toolchain go1.22.8
+go 1.22.8
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0
+	github.com/pramodrj07/api-gateway/loadbalancer v0.0.0-20241111103355-ca6b55eb1c0e
 	gopkg.in/yaml.v2 v2.4.0
 )
 
