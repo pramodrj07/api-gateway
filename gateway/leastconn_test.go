@@ -45,6 +45,11 @@ func TestConnectionRelease(t *testing.T) {
 	// Now release a connection from endpoint1
 	lc.ReleaseEndpoint("http://example1.com")
 
+	// Ensure the connection count is decremented
+	if lc.connCount["http://example1.com"] != 1 {
+		t.Errorf("Expected 1 connection for http://example1.com, but got %d", lc.connCount["http://example1.com"])
+	}
+
 	// endpoint1 should have fewer connections again
 	if lc.connCount["http://example1.com"] >= lc.connCount["http://example2.com"] {
 		t.Errorf("Expected http://example1.com to have fewer connections, but it didn't")

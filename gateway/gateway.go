@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -119,9 +118,6 @@ func (gateway *Gateway) Run() {
 		gateway.log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Start config watcher for periodic reloads
-	// go gateway.watchConfig(gateway.watcherChan)
-
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		gateway.log.Fatalf("Failed to create watcher: %v", err)
@@ -159,8 +155,6 @@ func (gateway *Gateway) Run() {
 		gateway.log.Fatalf("Failed to add watcher: %v", err)
 	}
 
-	gateway.Start()
-
 	gateway.log.Printf("API Gateway listening on :8080")
 	// Initialize a new mux router
 	mux := http.NewServeMux()
@@ -184,78 +178,48 @@ func (g *Gateway) updateServiceConfig(chan string) {
 }
 
 func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract service key from the URL path
-	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 2 {
-		http.Error(w, "Invalid URL path. Expected /<namespace>/<service-name>", http.StatusBadRequest)
+	// Log when the request is received
+	g.log.Printf("Received request: %s %s", r.Method, r.URL.Path) // Construct the URL and perform the HTTP request
+	serviceName := strings.TrimPrefix(r.URL.Path, "/")
+	g.log.Printf("Service name: %s", serviceName)
+
+	// check if the service exists in the service registry. If exists, fetch the service from the registry.
+	// If not, fetch the service from the load balancer.
+	service, exists := g.serviceRegistry[serviceName]
+	if !exists {
+		g.log.Printf("Service not found: %s", serviceName)
+		http.Error(w, "Service not found", http.StatusNotFound)
 		return
 	}
 
-	serviceKey := fmt.Sprintf("%s/%s", parts[0], parts[1])
-	endpoint, err := g.GetNextPodEndpoint(serviceKey)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+	if service.loadBalancerType == nil {
+		g.log.Printf("Load balancer not found for service: %s", serviceName)
+		http.Error(w, "Load balancer not found", http.StatusServiceUnavailable)
 		return
 	}
 
-	proxyURL := fmt.Sprintf("http://%s%s", endpoint, r.URL.Path)
-	g.log.Printf("Forwarding request to service %s -> %s", serviceKey, proxyURL)
-
-	resp, err := http.Get(proxyURL)
+	g.log.Printf("Service found: %s with endpoints %v", serviceName, service.endpoints)
+	url := service.loadBalancerType.NextEndpoint() + r.URL.Path
+	g.log.Printf("Forwarding request to: %s\n", url)
+	resp, err := http.Get(url)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error forwarding to pod: %v", err), http.StatusInternalServerError)
+		// Log if the service is unavailable
+		g.log.Printf("Error fetching from service: %v", err)
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	defer resp.Body.Close()
 
+	// Log the response status code
+	g.log.Printf("Received response: %d", resp.StatusCode)
+
+	// Copy the response body to the client
 	w.WriteHeader(resp.StatusCode)
-	_, _ = io.Copy(w, resp.Body)
-
+	w.Header().Set("Content-Type", "application/json")
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		// Log an error if there's a problem copying the response
+		g.log.Printf("Error writing response: %v", err)
+		http.Error(w, "Failed to read response", http.StatusInternalServerError)
+	}
 }
-
-// func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
-// 	// Log when the request is received
-// 	g.log.Printf("Received request: %s %s", r.Method, r.URL.Path) // Construct the URL and perform the HTTP request
-// 	serviceName := strings.TrimPrefix(r.URL.Path, "/")
-// 	g.log.Printf("Service name: %s", serviceName)
-
-// 	// check if the service exists in the service registry. If exists, fetch the service from the registry.
-// 	// If not, fetch the service from the load balancer.
-// 	service, exists := g.serviceRegistry[serviceName]
-// 	if !exists {
-// 		g.log.Printf("Service not found: %s", serviceName)
-// 		http.Error(w, "Service not found", http.StatusNotFound)
-// 		return
-// 	}
-
-// 	if service.loadBalancerType == nil {
-// 		g.log.Printf("Load balancer not found for service: %s", serviceName)
-// 		http.Error(w, "Load balancer not found", http.StatusServiceUnavailable)
-// 		return
-// 	}
-
-// 	g.log.Printf("Service found: %s with endpoints %v", serviceName, service.endpoints)
-// 	url := service.loadBalancerType.NextEndpoint() + r.URL.Path
-// 	g.log.Printf("Forwarding request to: %s\n", url)
-// 	resp, err := http.Get(url)
-// 	if err != nil {
-// 		// Log if the service is unavailable
-// 		g.log.Printf("Error fetching from service: %v", err)
-// 		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
-// 		return
-// 	}
-// 	defer resp.Body.Close()
-
-// 	// Log the response status code
-// 	g.log.Printf("Received response: %d", resp.StatusCode)
-
-// 	// Copy the response body to the client
-// 	w.WriteHeader(resp.StatusCode)
-// 	w.Header().Set("Content-Type", "application/json")
-// 	_, err = io.Copy(w, resp.Body)
-// 	if err != nil {
-// 		// Log an error if there's a problem copying the response
-// 		g.log.Printf("Error writing response: %v", err)
-// 		http.Error(w, "Failed to read response", http.StatusInternalServerError)
-// 	}
-// }

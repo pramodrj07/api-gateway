@@ -55,9 +55,10 @@ func (lc *LeastConnections) ReleaseEndpoint(endpoint string) {
 	lc.mux.Lock()
 	defer lc.mux.Unlock()
 
-	if count, exists := lc.connCount[endpoint]; exists && count > 0 {
+	if count, ok := lc.connCount[endpoint]; ok && count > 0 {
 		lc.connCount[endpoint]--
 	}
+
 }
 
 // SetEndpoints allows updating the list of endpoints dynamically in a thread-safe way.

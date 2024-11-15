@@ -36,7 +36,7 @@ func (rr *RoundRobin) NextEndpoint() string {
 
 	endpoint := rr.endpoints[rr.idx]
 	rr.idx = (rr.idx + 1) % len(rr.endpoints)
-	rr.log.Println("RoundRobin: Next endpoint is: %s", endpoint)
+	rr.log.Printf("RoundRobin: Next endpoint is: %s", endpoint)
 	return endpoint
 }
 
