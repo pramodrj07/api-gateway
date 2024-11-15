@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -22,21 +21,23 @@ type Gateway struct {
 	watcherChan chan string
 	config      *loadbalancer.Config
 	lock        *sync.Mutex
+	configPath  string
 	log         *log.Logger
 }
 
-func NewGateway(ctx context.Context, lock *sync.Mutex, log *log.Logger) *Gateway {
+func NewGateway(ctx context.Context, lock *sync.Mutex, configPath string, log *log.Logger) *Gateway {
 	return &Gateway{
 		ctx:         context.Background(),
 		watcherChan: make(chan string),
 		lock:        lock,
 		config:      nil,
+		configPath:  configPath,
 		log:         log,
 	}
 }
 
-func (g *Gateway) loadConfig(path string) (*loadbalancer.Config, error) {
-	data, err := os.ReadFile(path)
+func (g *Gateway) loadConfig() (*loadbalancer.Config, error) {
+	data, err := os.ReadFile(g.configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +53,7 @@ func (g *Gateway) loadConfig(path string) (*loadbalancer.Config, error) {
 func (gateway *Gateway) Run() {
 	var err error
 
-	config, err := gateway.loadConfig("config.yaml")
+	config, err := gateway.loadConfig()
 	if err != nil {
 		gateway.log.Fatalf("Failed to load config: %v", err)
 	}
@@ -98,17 +99,17 @@ func (gateway *Gateway) Run() {
 		}
 	}()
 
-	err = watcher.Add("config.yaml")
+	err = watcher.Add(gateway.configPath)
 	if err != nil {
 		gateway.log.Fatalf("Failed to add watcher: %v", err)
 	}
 
-	fmt.Println("API Gateway listening on :8080")
+	gateway.log.Printf("API Gateway listening on :8080")
 	// Initialize a new mux router
 	mux := http.NewServeMux()
 	// Register the route handler
 	mux.HandleFunc("/", http.HandlerFunc(gateway.routeHandler))
-	if err = http.ListenAndServe(":8088", mux); err != nil {
+	if err = http.ListenAndServe(":8080", mux); err != nil {
 		gateway.log.Fatalf("Failed to start server: %v", err)
 	}
 }
@@ -117,7 +118,7 @@ func (g *Gateway) updateServiceConfig(chan string) {
 	msg := <-g.watcherChan
 	g.log.Printf("Received update event for file: %s", msg)
 
-	updatedConfig, err := g.loadConfig("config.yaml")
+	updatedConfig, err := g.loadConfig()
 	if err != nil {
 		g.log.Fatalf("Failed to load config: %v", err)
 	}
@@ -133,12 +134,12 @@ func (g *Gateway) updateServiceConfig(chan string) {
 	g.log.Printf("Updated configuration: %+v", g.config)
 }
 
-// Route handler
 func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 	// Log when the request is received
 	g.log.Printf("Received request: %s %s", r.Method, r.URL.Path) // Construct the URL and perform the HTTP request
 	serviceName := strings.TrimPrefix(r.URL.Path, "/")
 	g.log.Printf("Service name: %s", serviceName)
+
 	service, err := loadbalancer.GetService(g.lock, *g.config, serviceName)
 	if err != nil {
 		g.log.Printf("Error fetching service: %v", err.Error())
@@ -154,9 +155,9 @@ func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	url := service.LoadBalancer.NextEndpoint() + r.URL.Path
 	g.log.Printf("Forwarding request to: %s\n", url)
-
 	resp, err := http.Get(url)
 	if err != nil {
 		// Log if the service is unavailable
