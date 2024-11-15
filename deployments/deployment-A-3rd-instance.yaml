@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-a-3rd-instance-deployment
+  labels:
+    app: service-a-3rd-instance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-a-3rd-instance
+  template:
+    metadata:
+      labels:
+        app: service-a-3rd-instance
+    spec:
+      containers:
+      - name: service-a-3rd-instance
+        image: pramodjayathirth/library:servicea-1.0
+        ports:
+        - containerPort: 8081
+        env:
+        - name: SERVICE_INSTANCE
+          value: "Service A 3rd Instance"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-a-3rd-instance
+spec:
+  selector:
+    app: service-a-3rd-instance
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8081
+  type: ClusterIP

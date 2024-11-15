@@ -3,6 +3,7 @@ services:
     endpoints:
       - http://service-a-1st-instance.default.svc.cluster.local:80
       - http://service-a-2nd-instance.default.svc.cluster.local:80
+      - http://service-a-3rd-instance.default.svc.cluster.local:80
     loadBalancer: round-robin
   serviceB:
     endpoints:
