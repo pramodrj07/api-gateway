@@ -2,11 +2,11 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
 	"sync"
 
@@ -17,53 +17,92 @@ import (
 )
 
 type Gateway struct {
-	ctx         context.Context
-	watcherChan chan string
-	config      *loadbalancer.Config
-	lock        *sync.Mutex
-	configPath  string
-	log         *log.Logger
+	ctx             context.Context
+	watcherChan     chan string
+	lock            *sync.Mutex
+	configPath      string
+	serviceRegistry map[string]*GatewayServiceConfig
+	log             *log.Logger
+}
+
+type Config struct {
+	Services map[string]ServiceConfig `yaml:"services"`
+}
+
+type ServiceConfig struct {
+	Endpoints    []string `yaml:"endpoints"`
+	LoadBalancer string   `yaml:"loadBalancer"`
+}
+
+type GatewayServiceConfig struct {
+	serviceName      string
+	loadBalancerType loadbalancer.LoadBalancer
+	endpoints        []string
+}
+
+func NewGatewayServiceConfig(serviceName string, loadBalancerType loadbalancer.LoadBalancer, endpoints []string) *GatewayServiceConfig {
+	return &GatewayServiceConfig{
+		serviceName:      serviceName,
+		loadBalancerType: loadBalancerType,
+		endpoints:        endpoints,
+	}
+}
+
+type LoadBalancer interface {
+	NextEndpoint() string
 }
 
 func NewGateway(ctx context.Context, lock *sync.Mutex, configPath string, log *log.Logger) *Gateway {
 	return &Gateway{
-		ctx:         context.Background(),
-		watcherChan: make(chan string),
-		lock:        lock,
-		config:      nil,
-		configPath:  configPath,
-		log:         log,
+		ctx:             context.Background(),
+		watcherChan:     make(chan string),
+		lock:            lock,
+		configPath:      configPath,
+		serviceRegistry: make(map[string]*GatewayServiceConfig),
+		log:             log,
 	}
 }
 
-func (g *Gateway) loadConfig() (*loadbalancer.Config, error) {
+func (g *Gateway) loadConfig() error {
 	data, err := os.ReadFile(g.configPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var config loadbalancer.Config
+	var config Config
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &config, nil
+
+	// Update the service registry with the new configuration
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	for serviceName, serviceConfig := range config.Services {
+		var lb loadbalancer.LoadBalancer
+		switch serviceConfig.LoadBalancer {
+		case "round-robin":
+			lb = loadbalancer.NewRoundRobin(serviceConfig.Endpoints)
+		case "least-connections":
+			lb = loadbalancer.NewLeastConnections(serviceConfig.Endpoints)
+		default:
+			return errors.New("unsupported load balancer type")
+		}
+
+		g.serviceRegistry[serviceName] = NewGatewayServiceConfig(serviceName, lb, serviceConfig.Endpoints)
+	}
+
+	return nil
 }
 
 func (gateway *Gateway) Run() {
-	var err error
-
-	config, err := gateway.loadConfig()
+	err := gateway.loadConfig()
 	if err != nil {
 		gateway.log.Fatalf("Failed to load config: %v", err)
 	}
 
-	gateway.log.Println("Configuration loaded")
-
-	// Initialize the service registry
-	gateway.config = config
-
-	gateway.log.Printf("Configuration: %+v\n", gateway.config)
+	gateway.log.Printf("Service Registry: %+v\n", gateway.serviceRegistry)
 	// Start config watcher for periodic reloads
 	// go gateway.watchConfig(gateway.watcherChan)
 
@@ -118,20 +157,12 @@ func (g *Gateway) updateServiceConfig(chan string) {
 	msg := <-g.watcherChan
 	g.log.Printf("Received update event for file: %s", msg)
 
-	updatedConfig, err := g.loadConfig()
+	err := g.loadConfig()
 	if err != nil {
 		g.log.Fatalf("Failed to load config: %v", err)
 	}
 
-	if !reflect.DeepEqual(updatedConfig, g.config) {
-		g.lock.Lock()
-		defer g.lock.Unlock()
-		g.config = updatedConfig
-		g.log.Printf("New Configuration detected. Updated Configuration is: %+v", g.config)
-		return
-	}
-
-	g.log.Printf("Updated configuration: %+v", g.config)
+	g.log.Printf("Updated Service Registry: %+v\n", g.serviceRegistry)
 }
 
 func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
@@ -140,23 +171,16 @@ func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 	serviceName := strings.TrimPrefix(r.URL.Path, "/")
 	g.log.Printf("Service name: %s", serviceName)
 
-	service, err := loadbalancer.GetService(g.lock, *g.config, serviceName)
-	if err != nil {
-		g.log.Printf("Error fetching service: %v", err.Error())
-		switch err.Error() {
-		case "service not found":
-			http.Error(w, "Service not found", http.StatusNotFound)
-			return
-		case "unsupported load balancer type":
-			http.Error(w, "Unsupported load balancer type", http.StatusNotImplemented)
-			return
-		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
+	// check if the service exists in the service registry. If exists, fetch the service from the registry.
+	// If not, fetch the service from the load balancer.
+	service, exists := g.serviceRegistry[serviceName]
+	if !exists {
+		g.log.Printf("Service not found: %s", serviceName)
+		http.Error(w, "Service not found", http.StatusNotFound)
+		return
 	}
 
-	url := service.LoadBalancer.NextEndpoint() + r.URL.Path
+	url := service.loadBalancerType.NextEndpoint() + r.URL.Path
 	g.log.Printf("Forwarding request to: %s\n", url)
 	resp, err := http.Get(url)
 	if err != nil {

@@ -1,7 +1,7 @@
 github.com/fsnotify/fsnotify v1.8.0 h1:dAwr6QBTBZIkG8roQaJjGof0pp0EeF+tNV7YBP3F/8M=
 github.com/fsnotify/fsnotify v1.8.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
-github.com/pramodrj07/api-gateway/loadbalancer v0.0.0-20241111103626-a00fdada61e8 h1:SCas2zKBy4Qu7ebD/tk5N6lXTX4oTBPUJzxK0Z7rFqA=
-github.com/pramodrj07/api-gateway/loadbalancer v0.0.0-20241111103626-a00fdada61e8/go.mod h1:DAa43c4bR23OHgw2sg04gCQGHHGkjb+bFptg8+A6Cr8=
+github.com/pramodrj07/api-gateway/loadbalancer v0.0.0-20241115044045-c1a30243ca36 h1:ndLYW/P4kDiXNUUwT9xueSJ3oMXrIW414Sio4pKP4bo=
+github.com/pramodrj07/api-gateway/loadbalancer v0.0.0-20241115044045-c1a30243ca36/go.mod h1:DAa43c4bR23OHgw2sg04gCQGHHGkjb+bFptg8+A6Cr8=
 golang.org/x/sys v0.13.0 h1:Af8nKPmuFypiUBjVoU9V20FiaFXOcuZI21p0ycVYYGE=
 golang.org/x/sys v0.13.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=

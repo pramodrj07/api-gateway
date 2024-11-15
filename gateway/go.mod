@@ -4,7 +4,7 @@ go 1.22.8
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0
-	github.com/pramodrj07/api-gateway/loadbalancer v0.0.0-20241111103626-a00fdada61e8
+	github.com/pramodrj07/api-gateway/loadbalancer v0.0.0-20241115044045-c1a30243ca36
 	gopkg.in/yaml.v2 v2.4.0
 )
 

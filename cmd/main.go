@@ -9,12 +9,17 @@ import (
 	gateway "github.com/pramodrj07/api-gateway/gateway"
 )
 
+const (
+	configPath = "config.yaml"
+	APIgateway = "API-gateway"
+)
+
 func main() {
-	log := log.New(os.Stdout, "API-gateway", log.LstdFlags)
+	log := log.New(os.Stdout, APIgateway, log.LstdFlags)
 
 	ctx := context.Background()
 	lock := sync.Mutex{}
 
-	gateway := gateway.NewGateway(ctx, &lock, "config.yaml", log)
+	gateway := gateway.NewGateway(ctx, &lock, configPath, log)
 	gateway.Run()
 }
