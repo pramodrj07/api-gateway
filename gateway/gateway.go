@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -183,20 +184,22 @@ func (g *Gateway) updateServiceConfig(chan string) {
 }
 
 func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
-	service := r.URL.Query().Get("service")
-	if service == "" {
-		http.Error(w, "Missing service parameter", http.StatusBadRequest)
+	// Extract service key from the URL path
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 2 {
+		http.Error(w, "Invalid URL path. Expected /<namespace>/<service-name>", http.StatusBadRequest)
 		return
 	}
 
-	endpoint, err := g.GetNextPodEndpoint(service)
+	serviceKey := fmt.Sprintf("%s/%s", parts[0], parts[1])
+	endpoint, err := g.GetNextPodEndpoint(serviceKey)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusServiceUnavailable)
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
 
 	proxyURL := fmt.Sprintf("http://%s%s", endpoint, r.URL.Path)
-	log.Printf("Forwarding request to service %s -> %s", service, proxyURL)
+	g.log.Printf("Forwarding request to service %s -> %s", serviceKey, proxyURL)
 
 	resp, err := http.Get(proxyURL)
 	if err != nil {

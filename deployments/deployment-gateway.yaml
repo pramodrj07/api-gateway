@@ -1,3 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-watcher
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-watcher-binding
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default  # Replace with your namespace if different
+roleRef:
+  kind: ClusterRole
+  name: pod-watcher
+  apiGroup: rbac.authorization.k8s.io
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,7 +38,7 @@ spec:
     spec:
       containers:
       - name: gateway
-        image: docker.io/pramodjayathirth/library:gateway-v1.16
+        image: docker.io/pramodjayathirth/library:gateway-v2.4
         ports:
         - containerPort: 8080
 
