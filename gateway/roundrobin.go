@@ -1,4 +1,4 @@
-package loadbalancer
+package gateway
 
 import (
 	"log"

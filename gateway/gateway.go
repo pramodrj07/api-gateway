@@ -10,9 +10,8 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pramodrj07/api-gateway/loadbalancer"
 	"gopkg.in/yaml.v2"
-
-	loadbalancer "github.com/pramodrj07/api-gateway/loadbalancer"
 )
 
 type Gateway struct {
@@ -82,9 +81,9 @@ func (g *Gateway) loadConfig() error {
 		var lb loadbalancer.LoadBalancer
 		switch serviceConfig.LoadBalancer {
 		case "round-robin":
-			lb = loadbalancer.NewRoundRobin(serviceConfig.Endpoints, g.log)
+			lb = NewRoundRobin(serviceConfig.Endpoints, g.log)
 		case "least-connections":
-			lb = loadbalancer.NewLeastConnections(serviceConfig.Endpoints, g.log)
+			lb = NewLeastConnections(serviceConfig.Endpoints, g.log)
 		default:
 			lb = nil
 		}
