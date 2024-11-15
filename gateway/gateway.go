@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -87,7 +86,7 @@ func (g *Gateway) loadConfig() error {
 		case "least-connections":
 			lb = loadbalancer.NewLeastConnections(serviceConfig.Endpoints, g.log)
 		default:
-			return errors.New("unsupported load balancer type")
+			lb = nil
 		}
 
 		g.serviceRegistry[serviceName] = NewGatewayServiceConfig(serviceName, lb, serviceConfig.Endpoints)
@@ -177,6 +176,12 @@ func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		g.log.Printf("Service not found: %s", serviceName)
 		http.Error(w, "Service not found", http.StatusNotFound)
+		return
+	}
+
+	if service.loadBalancerType == nil {
+		g.log.Printf("Load balancer not found for service: %s", serviceName)
+		http.Error(w, "Load balancer not found", http.StatusServiceUnavailable)
 		return
 	}
 

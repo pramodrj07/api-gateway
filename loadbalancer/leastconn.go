@@ -1,6 +1,7 @@
 package loadbalancer
 
 import (
+	"log"
 	"math"
 	"sync"
 )
@@ -9,10 +10,11 @@ type LeastConnections struct {
 	endpoints []string
 	connCount map[string]int
 	mux       sync.Mutex
+	log       *log.Logger
 }
 
 // NewLeastConnections initializes a LeastConnections instance with given endpoints.
-func NewLeastConnections(endpoints []string) *LeastConnections {
+func NewLeastConnections(endpoints []string, log log.Logger) *LeastConnections {
 	connCount := make(map[string]int)
 	for _, endpoint := range endpoints {
 		connCount[endpoint] = 0
@@ -20,6 +22,7 @@ func NewLeastConnections(endpoints []string) *LeastConnections {
 	return &LeastConnections{
 		endpoints: endpoints,
 		connCount: connCount,
+		log:       &log,
 	}
 }
 
@@ -42,6 +45,7 @@ func (lc *LeastConnections) NextEndpoint() string {
 		}
 	}
 	lc.connCount[selected]++
+	lc.log.Printf("LeastConnections: Next endpoint is: %s", selected)
 	return selected
 }
 
