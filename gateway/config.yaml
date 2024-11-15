@@ -1,0 +1,18 @@
+services:
+  serviceA:
+    endpoints:
+      - http://service-a-1st-instance.default.svc.cluster.local:80
+      - http://service-a-2nd-instance.default.svc.cluster.local:80
+    loadBalancer: round-robin
+  serviceB:
+    endpoints:
+      - http://service-b-service.default.svc.cluster.local:80
+    loadBalancer: least-connections
+  serviceC:
+    endpoints:
+      - http://service-c-service.default.svc.cluster.local:80
+    loadBalancer: random
+  serviceD:
+    endpoints:
+      - http://service-d-service.default.svc.cluster.local:80
+    loadBalancer: something

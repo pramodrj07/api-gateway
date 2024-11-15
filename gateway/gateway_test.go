@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"sync"
 	"testing"
 
@@ -17,7 +16,7 @@ import (
 // TestNewGateway tests that a new Gateway instance is created correctly
 func TestNewGateway(t *testing.T) {
 	logger := log.New(ioutil.Discard, "", log.LstdFlags)
-	gateway := NewGateway(context.Background(), &sync.Mutex{}, logger)
+	gateway := NewGateway(context.Background(), &sync.Mutex{}, "config.yaml", logger)
 
 	if gateway == nil {
 		t.Fatal("Expected a new Gateway instance, got nil")
@@ -27,30 +26,10 @@ func TestNewGateway(t *testing.T) {
 // TestLoadConfig tests that the configuration is loaded correctly
 func TestLoadConfig(t *testing.T) {
 	logger := log.New(ioutil.Discard, "", log.LstdFlags)
-	gateway := NewGateway(context.Background(), &sync.Mutex{}, logger)
-
-	// Create a temporary configuration file
-	configData := `
-services:
-  my-service:
-    loadBalancer:
-      type: "round_robin"
-      endpoints:
-        - "http://localhost:8081"
-        - "http://localhost:8082"
-`
-	tmpFile, err := ioutil.TempFile("", "config-*.yaml")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
-
-	if _, err := tmpFile.Write([]byte(configData)); err != nil {
-		t.Fatalf("Failed to write to temp file: %v", err)
-	}
+	gateway := NewGateway(context.Background(), &sync.Mutex{}, "config.yaml", logger)
 
 	// Test loading the configuration
-	config, err := gateway.loadConfig(tmpFile.Name())
+	config, err := gateway.loadConfig()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -63,7 +42,7 @@ services:
 // TestRouteHandler tests the Gateway's route handler with a sample request
 func TestRouteHandler(t *testing.T) {
 	logger := log.New(ioutil.Discard, "", log.LstdFlags)
-	gateway := NewGateway(context.Background(), &sync.Mutex{}, logger)
+	gateway := NewGateway(context.Background(), &sync.Mutex{}, "config.yaml", logger)
 
 	// Set a sample config in the Gateway
 	gateway.config = &loadbalancer.Config{
@@ -112,7 +91,7 @@ func TestRouteHandler(t *testing.T) {
 // TestUpdateServiceConfig tests the updateServiceConfig method with a config change
 func TestUpdateServiceConfig(t *testing.T) {
 	logger := log.New(ioutil.Discard, "", log.LstdFlags)
-	gateway := NewGateway(context.Background(), &sync.Mutex{}, logger)
+	gateway := NewGateway(context.Background(), &sync.Mutex{}, "config.yaml", logger)
 
 	// Set initial configuration
 	initialConfig := &loadbalancer.Config{
