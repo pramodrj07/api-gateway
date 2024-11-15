@@ -52,7 +52,7 @@ func (g *Gateway) loadConfig(path string) (*loadbalancer.Config, error) {
 func (gateway *Gateway) Run() {
 	var err error
 
-	config, err := gateway.loadConfig("/workspaces/api-gateway/configuration/config.yaml")
+	config, err := gateway.loadConfig("config.yaml")
 	if err != nil {
 		gateway.log.Fatalf("Failed to load config: %v", err)
 	}
@@ -98,7 +98,7 @@ func (gateway *Gateway) Run() {
 		}
 	}()
 
-	err = watcher.Add("/workspaces/api-gateway/configuration/config.yaml")
+	err = watcher.Add("config.yaml")
 	if err != nil {
 		gateway.log.Fatalf("Failed to add watcher: %v", err)
 	}
@@ -117,7 +117,7 @@ func (g *Gateway) updateServiceConfig(chan string) {
 	msg := <-g.watcherChan
 	g.log.Printf("Received update event for file: %s", msg)
 
-	updatedConfig, err := g.loadConfig("/workspaces/api-gateway/configuration/config.yaml")
+	updatedConfig, err := g.loadConfig("config.yaml")
 	if err != nil {
 		g.log.Fatalf("Failed to load config: %v", err)
 	}
@@ -141,10 +141,6 @@ func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 	g.log.Printf("Service name: %s", serviceName)
 	service, err := loadbalancer.GetService(g.lock, *g.config, serviceName)
 	if err != nil {
-		// Log if the service is not found
-		// g.log.Printf("Service not found: %v", err)
-		// http.Error(w, "Service not found or unsupported load balancer type", http.StatusNotFound)
-		// return
 		g.log.Printf("Error fetching service: %v", err.Error())
 		switch err.Error() {
 		case "service not found":

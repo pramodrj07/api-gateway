@@ -15,6 +15,6 @@ func main() {
 	ctx := context.Background()
 	lock := sync.Mutex{}
 
-	gateway := gateway.NewGateway(ctx, &lock, log)
+	gateway := gateway.NewGateway(ctx, &lock, "config.yaml", log)
 	gateway.Run()
 }

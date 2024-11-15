@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -15,6 +16,11 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"service": "Service A"}
+	// read the environment variable " SERVICE_INSTANCE" and return it as a response
+	svcInstanceName := os.Getenv("SERVICE_INSTANCE")
+	if svcInstanceName == "" {
+		svcInstanceName = "ServiceA"
+	}
+	response := map[string]string{"service": svcInstanceName}
 	json.NewEncoder(w).Encode(response)
 }

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-a-2nd-instance-deployment
+  labels:
+    app: service-a-2nd-instance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-a-2nd-instance
+  template:
+    metadata:
+      labels:
+        app: service-a-2nd-instance
+    spec:
+      containers:
+      - name: service-a-2nd-instance
+        image: pramodjayathirth/library:servicea-1.0
+        ports:
+        - containerPort: 8081
+        env:
+        - name: SERVICE_INSTANCE
+          value: "Service A 2nd Instance"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-a-2nd-instance-service
+spec:
+  selector:
+    app: service-a-2nd-instance
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8081
+  type: ClusterIP
