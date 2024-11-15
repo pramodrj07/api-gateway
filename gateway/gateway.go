@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/pramodrj07/api-gateway/loadbalancer"
 	"gopkg.in/yaml.v2"
 )
 
@@ -34,11 +33,11 @@ type ServiceConfig struct {
 
 type GatewayServiceConfig struct {
 	serviceName      string
-	loadBalancerType loadbalancer.LoadBalancer
+	loadBalancerType LoadBalancer
 	endpoints        []string
 }
 
-func NewGatewayServiceConfig(serviceName string, loadBalancerType loadbalancer.LoadBalancer, endpoints []string) *GatewayServiceConfig {
+func NewGatewayServiceConfig(serviceName string, loadBalancerType LoadBalancer, endpoints []string) *GatewayServiceConfig {
 	return &GatewayServiceConfig{
 		serviceName:      serviceName,
 		loadBalancerType: loadBalancerType,
@@ -78,7 +77,7 @@ func (g *Gateway) loadConfig() error {
 	defer g.lock.Unlock()
 
 	for serviceName, serviceConfig := range config.Services {
-		var lb loadbalancer.LoadBalancer
+		var lb LoadBalancer
 		switch serviceConfig.LoadBalancer {
 		case "round-robin":
 			lb = NewRoundRobin(serviceConfig.Endpoints, g.log)
