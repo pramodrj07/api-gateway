@@ -83,9 +83,9 @@ func (g *Gateway) loadConfig() error {
 		var lb loadbalancer.LoadBalancer
 		switch serviceConfig.LoadBalancer {
 		case "round-robin":
-			lb = loadbalancer.NewRoundRobin(serviceConfig.Endpoints)
+			lb = loadbalancer.NewRoundRobin(serviceConfig.Endpoints, g.log)
 		case "least-connections":
-			lb = loadbalancer.NewLeastConnections(serviceConfig.Endpoints)
+			lb = loadbalancer.NewLeastConnections(serviceConfig.Endpoints, g.log)
 		default:
 			return errors.New("unsupported load balancer type")
 		}
@@ -180,6 +180,7 @@ func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	g.log.Printf("Service found: %s with endpoints %v", serviceName, service.endpoints)
 	url := service.loadBalancerType.NextEndpoint() + r.URL.Path
 	g.log.Printf("Forwarding request to: %s\n", url)
 	resp, err := http.Get(url)

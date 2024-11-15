@@ -1,11 +1,12 @@
 package loadbalancer
 
 import (
+	"log"
 	"testing"
 )
 
 func TestSingleEndpoint(t *testing.T) {
-	rr := NewRoundRobin([]string{"http://example.com"})
+	rr := NewRoundRobin([]string{"http://example.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
 	for i := 0; i < 10; i++ {
 		endpoint := rr.NextEndpoint()
 		if endpoint != "http://example.com" {
@@ -15,7 +16,7 @@ func TestSingleEndpoint(t *testing.T) {
 }
 
 func TestMultipleEndpoints(t *testing.T) {
-	rr := NewRoundRobin([]string{"http://example1.com", "http://example2.com", "http://example3.com"})
+	rr := NewRoundRobin([]string{"http://example1.com", "http://example2.com", "http://example3.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
 	expectedEndpoints := []string{
 		"http://example1.com", "http://example2.com", "http://example3.com",
 		"http://example1.com", "http://example2.com", "http://example3.com",
@@ -30,7 +31,7 @@ func TestMultipleEndpoints(t *testing.T) {
 }
 
 func TestNoEndpoints(t *testing.T) {
-	rr := NewRoundRobin([]string{})
+	rr := NewRoundRobin([]string{}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
 	endpoint := rr.NextEndpoint()
 	if endpoint != "" {
 		t.Errorf("Expected empty string, but got %s", endpoint)
@@ -38,7 +39,7 @@ func TestNoEndpoints(t *testing.T) {
 }
 
 func TestUpdateEndpoints(t *testing.T) {
-	rr := NewRoundRobin([]string{"http://example1.com", "http://example2.com"})
+	rr := NewRoundRobin([]string{"http://example1.com", "http://example2.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
 	rr.NextEndpoint() // Move index forward once
 
 	// Update endpoints

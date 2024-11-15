@@ -1,6 +1,7 @@
 package loadbalancer
 
 import (
+	"log"
 	"sync"
 )
 
@@ -8,13 +9,15 @@ type RoundRobin struct {
 	endpoints []string
 	idx       int
 	mux       sync.Mutex
+	log       *log.Logger
 }
 
 // NewRoundRobin initializes a RoundRobin instance with given endpoints.
-func NewRoundRobin(endpoints []string) *RoundRobin {
+func NewRoundRobin(endpoints []string, log *log.Logger) *RoundRobin {
 	return &RoundRobin{
 		endpoints: endpoints,
 		idx:       0,
+		log:       log,
 	}
 }
 
@@ -24,12 +27,16 @@ func (rr *RoundRobin) NextEndpoint() string {
 	rr.mux.Lock()
 	defer rr.mux.Unlock()
 
+	rr.log.Println("RoundRobin: Total endpoints are", len(rr.endpoints))
 	if len(rr.endpoints) == 0 {
 		return "" // No endpoints available
 	}
 
+	rr.log.Println("RoundRobin: Current index is", rr.idx)
+
 	endpoint := rr.endpoints[rr.idx]
 	rr.idx = (rr.idx + 1) % len(rr.endpoints)
+	rr.log.Println("RoundRobin: Next endpoint is: %s", endpoint)
 	return endpoint
 }
 
