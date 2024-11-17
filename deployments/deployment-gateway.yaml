@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
       - name: gateway
-        image: docker.io/pramodjayathirth/library:gateway-v3.0
+        image: docker.io/pramodjayathirth/library:api-gateway-v1.0
         ports:
         - containerPort: 8080
 

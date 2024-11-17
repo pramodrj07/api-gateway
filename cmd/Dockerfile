@@ -1,6 +1,7 @@
 FROM golang:1.23-alpine
 WORKDIR /app
 COPY main.go .
+# Baking the config file into the image
 COPY config.yaml .
 
 ADD . .
