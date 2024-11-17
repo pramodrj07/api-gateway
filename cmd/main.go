@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 	"sync"
+	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	gateway "github.com/pramodrj07/api-gateway/gateway"
 )
@@ -15,11 +18,19 @@ const (
 )
 
 func main() {
-	log := log.New(os.Stdout, APIgateway, log.LstdFlags)
+	loggerConfig := zap.NewProductionConfig()
+	loggerConfig.EncoderConfig.TimeKey = "timestamp"
+	loggerConfig.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC1123Z)
+	loggerConfig.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+
+	logger, err := loggerConfig.Build()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ctx := context.Background()
 	lock := sync.Mutex{}
 
-	gateway := gateway.NewGateway(ctx, &lock, configPath, log)
+	gateway := gateway.NewGateway(ctx, &lock, configPath, logger)
 	gateway.Run()
 }

@@ -3,11 +3,12 @@ package gateway
 import (
 	"context"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
+
+	log "go.uber.org/zap"
 
 	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v2"
@@ -96,12 +97,12 @@ func (g *Gateway) loadConfig() error {
 func (gateway *Gateway) Run() {
 	err := gateway.loadConfig()
 	if err != nil {
-		gateway.log.Fatalf("Failed to load config: %v", err)
+		gateway.log.Sugar().DPanic("Failed to load config: %v", err)
 	}
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		gateway.log.Fatalf("Failed to create watcher: %v", err)
+		gateway.log.Sugar().DPanic("Failed to create watcher: %v", err)
 	}
 
 	defer watcher.Close()
@@ -113,19 +114,19 @@ func (gateway *Gateway) Run() {
 				if !ok {
 					return
 				}
-				log.Println("event:", event)
+				gateway.log.Sugar().Infof("event:", event)
 				if event.Has(fsnotify.Write) {
 					go gateway.updateServiceConfig(gateway.watcherChan)
-					log.Println("modified file:", event.Name)
+					gateway.log.Sugar().Infof("modified file:", event.Name)
 					gateway.watcherChan <- event.String()
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
 				}
-				log.Println("error:", err)
+				gateway.log.Sugar().Infof("error:", err)
 			case <-gateway.ctx.Done():
-				gateway.log.Println("Context done, exiting watcher")
+				gateway.log.Sugar().Infof("Context done, exiting watcher")
 				return
 			}
 		}
@@ -133,66 +134,66 @@ func (gateway *Gateway) Run() {
 
 	err = watcher.Add(gateway.configPath)
 	if err != nil {
-		gateway.log.Fatalf("Failed to add watcher: %v", err)
+		gateway.log.Sugar().Fatalf("Failed to add watcher: %v", err)
 	}
 
-	gateway.log.Printf("API Gateway listening on :8080")
+	gateway.log.Sugar().Infof("API Gateway listening on :8080")
 	// Initialize a new mux router
 	mux := http.NewServeMux()
 	// Register the route handler
 	mux.HandleFunc("/", http.HandlerFunc(gateway.routeHandler))
 	if err = http.ListenAndServe(":8080", mux); err != nil {
-		gateway.log.Fatalf("Failed to start server: %v", err)
+		gateway.log.Sugar().Fatalf("Failed to start server: %v", err)
 	}
 }
 
 func (g *Gateway) updateServiceConfig(chan string) {
 	msg := <-g.watcherChan
-	g.log.Printf("Received update event for file: %s", msg)
+	g.log.Sugar().Infof("Received update event for file: %s", msg)
 
 	err := g.loadConfig()
 	if err != nil {
-		g.log.Fatalf("Failed to load config: %v", err)
+		g.log.Sugar().Fatalf("Failed to load config: %v", err)
 	}
 
-	g.log.Printf("Updated Service Registry: %+v\n", g.serviceRegistry)
+	g.log.Sugar().Infof("Updated Service Registry: %+v\n", g.serviceRegistry)
 }
 
 func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 	// Log when the request is received
-	g.log.Printf("Received request: %s %s", r.Method, r.URL.Path) // Construct the URL and perform the HTTP request
+	g.log.Sugar().Infof("Received request: %s %s", r.Method, r.URL.Path) // Construct the URL and perform the HTTP request
 	serviceName := strings.TrimPrefix(r.URL.Path, "/")
-	g.log.Printf("Service name: %s", serviceName)
+	g.log.Sugar().Infof("Service name: %s", serviceName)
 
 	// check if the service exists in the service registry. If exists, fetch the service from the registry.
 	// If not, fetch the service from the load balancer.
 	service, exists := g.serviceRegistry[serviceName]
 	if !exists {
-		g.log.Printf("Service not found: %s", serviceName)
+		g.log.Sugar().Infof("Service not found: %s", serviceName)
 		http.Error(w, "Service not found", http.StatusNotFound)
 		return
 	}
 
 	if service.loadBalancerType == nil {
-		g.log.Printf("Load balancer not found for service: %s", serviceName)
+		g.log.Sugar().Infof("Load balancer not found for service: %s", serviceName)
 		http.Error(w, "Load balancer not found", http.StatusServiceUnavailable)
 		return
 	}
 
-	g.log.Printf("Service found: %s with endpoints %v", serviceName, service.endpoints)
+	g.log.Sugar().Infof("Service found: %s with endpoints %v", serviceName, service.endpoints)
 	url := service.loadBalancerType.NextEndpoint() + r.URL.Path
-	g.log.Printf("Forwarding request to: %s\n", url)
+	g.log.Sugar().Infof("Forwarding request to: %s\n", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		// Log if the service is unavailable
-		g.log.Printf("Error fetching from service: %v", err)
+		g.log.Sugar().Infof("Error fetching from service: %v", err)
 		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	defer resp.Body.Close()
 
 	// Log the response status code
-	g.log.Printf("Received response: %d", resp.StatusCode)
+	g.log.Sugar().Infof("Received response: %d", resp.StatusCode)
 
 	// Copy the response body to the client
 	w.WriteHeader(resp.StatusCode)
@@ -200,7 +201,7 @@ func (g *Gateway) routeHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
 		// Log an error if there's a problem copying the response
-		g.log.Printf("Error writing response: %v", err)
+		g.log.Sugar().Infof("Error writing response: %v", err)
 		http.Error(w, "Failed to read response", http.StatusInternalServerError)
 	}
 }

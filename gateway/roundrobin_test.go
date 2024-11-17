@@ -1,13 +1,15 @@
 package gateway
 
-
 import (
-	"log"
 	"testing"
+
+	"go.uber.org/zap"
 )
 
 func TestSingleEndpoint(t *testing.T) {
-	rr := NewRoundRobin([]string{"http://example.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	rr := NewRoundRobin([]string{"http://example.com"}, logger)
 	for i := 0; i < 10; i++ {
 		endpoint := rr.NextEndpoint()
 		if endpoint != "http://example.com" {
@@ -17,7 +19,9 @@ func TestSingleEndpoint(t *testing.T) {
 }
 
 func TestMultipleEndpoints(t *testing.T) {
-	rr := NewRoundRobin([]string{"http://example1.com", "http://example2.com", "http://example3.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	rr := NewRoundRobin([]string{"http://example1.com", "http://example2.com", "http://example3.com"}, logger)
 	expectedEndpoints := []string{
 		"http://example1.com", "http://example2.com", "http://example3.com",
 		"http://example1.com", "http://example2.com", "http://example3.com",
@@ -32,7 +36,9 @@ func TestMultipleEndpoints(t *testing.T) {
 }
 
 func TestNoEndpoints(t *testing.T) {
-	rr := NewRoundRobin([]string{}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	rr := NewRoundRobin([]string{}, logger)
 	endpoint := rr.NextEndpoint()
 	if endpoint != "" {
 		t.Errorf("Expected empty string, but got %s", endpoint)
@@ -40,7 +46,9 @@ func TestNoEndpoints(t *testing.T) {
 }
 
 func TestUpdateEndpoints(t *testing.T) {
-	rr := NewRoundRobin([]string{"http://example1.com", "http://example2.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	rr := NewRoundRobin([]string{"http://example1.com", "http://example2.com"}, logger)
 	rr.NextEndpoint() // Move index forward once
 
 	// Update endpoints

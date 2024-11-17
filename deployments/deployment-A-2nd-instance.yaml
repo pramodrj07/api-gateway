@@ -16,12 +16,15 @@ spec:
     spec:
       containers:
       - name: service-a-2nd-instance
-        image: pramodjayathirth/library:servicea-1.0
+        image: docker.io/pramodjayathirth/library:mockservice-v1.2
         ports:
         - containerPort: 8081
         env:
+        env:
+        - name: SERVICE_NAME
+          value: "Service A"
         - name: SERVICE_INSTANCE
-          value: "Service A 2nd Instance"
+          value: "2nd Instance"
 
 ---
 apiVersion: v1

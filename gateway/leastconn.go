@@ -1,9 +1,10 @@
 package gateway
 
 import (
-	"log"
 	"math"
 	"sync"
+
+	log "go.uber.org/zap"
 )
 
 type LeastConnections struct {
@@ -45,7 +46,7 @@ func (lc *LeastConnections) NextEndpoint() string {
 		}
 	}
 	lc.connCount[selected]++
-	lc.log.Printf("LeastConnections: Next endpoint is: %s", selected)
+	lc.log.Sugar().Debugf("LeastConnections: Next endpoint is: %s", selected)
 	return selected
 }
 

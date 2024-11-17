@@ -1,12 +1,15 @@
 package gateway
 
 import (
-	"log"
 	"testing"
+
+	"go.uber.org/zap"
 )
 
 func TestSingleEndpointForLeastConn(t *testing.T) {
-	lc := NewLeastConnections([]string{"http://example.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	lc := NewLeastConnections([]string{"http://example.com"}, logger)
 	for i := 0; i < 10; i++ {
 		endpoint := lc.NextEndpoint()
 		if endpoint != "http://example.com" {
@@ -16,7 +19,9 @@ func TestSingleEndpointForLeastConn(t *testing.T) {
 }
 
 func TestMultipleEndpointsWithLeastConnections(t *testing.T) {
-	lc := NewLeastConnections([]string{"http://example1.com", "http://example2.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	lc := NewLeastConnections([]string{"http://example1.com", "http://example2.com"}, logger)
 
 	// Initial selection should be balanced
 	endpoint1 := lc.NextEndpoint()
@@ -35,7 +40,9 @@ func TestMultipleEndpointsWithLeastConnections(t *testing.T) {
 }
 
 func TestConnectionRelease(t *testing.T) {
-	lc := NewLeastConnections([]string{"http://example1.com", "http://example2.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	lc := NewLeastConnections([]string{"http://example1.com", "http://example2.com"}, logger)
 
 	// Simulate connections
 	lc.NextEndpoint() // endpoint1
@@ -60,7 +67,9 @@ func TestConnectionRelease(t *testing.T) {
 }
 
 func TestNoEndpointsForLeastConn(t *testing.T) {
-	lc := NewLeastConnections([]string{}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	lc := NewLeastConnections([]string{}, logger)
 	endpoint := lc.NextEndpoint()
 	if endpoint != "" {
 		t.Errorf("Expected empty string, but got %s", endpoint)
@@ -68,7 +77,9 @@ func TestNoEndpointsForLeastConn(t *testing.T) {
 }
 
 func TestUpdateEndpointsForLeastConn(t *testing.T) {
-	lc := NewLeastConnections([]string{"http://example1.com", "http://example2.com"}, log.New(log.Writer(), "RoundRobin: ", log.Flags()))
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
+	lc := NewLeastConnections([]string{"http://example1.com", "http://example2.com"}, logger)
 
 	// Simulate some connections
 	lc.NextEndpoint() // example1

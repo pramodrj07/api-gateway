@@ -16,9 +16,14 @@ spec:
     spec:
       containers:
       - name: service-b
-        image: docker.io/pramodjayathirth/library:serviceb
+        image: docker.io/pramodjayathirth/library:mockservice-v1.2
         ports:
-        - containerPort: 8082
+        - containerPort: 8081
+        env:
+        - name: SERVICE_NAME
+          value: "Service B"
+        - name: SERVICE_INSTANCE
+          value: "1st Instance"
 
 ---
 apiVersion: v1
@@ -31,5 +36,5 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 8082
+      targetPort: 8081
   type: ClusterIP

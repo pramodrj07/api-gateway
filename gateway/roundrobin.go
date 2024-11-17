@@ -1,8 +1,9 @@
 package gateway
 
 import (
-	"log"
 	"sync"
+
+	log "go.uber.org/zap"
 )
 
 type RoundRobin struct {
@@ -27,16 +28,16 @@ func (rr *RoundRobin) NextEndpoint() string {
 	rr.mux.Lock()
 	defer rr.mux.Unlock()
 
-	rr.log.Println("RoundRobin: Total endpoints are", len(rr.endpoints))
+	rr.log.Sugar().Debugf("RoundRobin: Total endpoints are", len(rr.endpoints))
 	if len(rr.endpoints) == 0 {
 		return "" // No endpoints available
 	}
 
-	rr.log.Println("RoundRobin: Current index is", rr.idx)
+	rr.log.Sugar().Debugf("RoundRobin: Current index is", rr.idx)
 
 	endpoint := rr.endpoints[rr.idx]
 	rr.idx = (rr.idx + 1) % len(rr.endpoints)
-	rr.log.Printf("RoundRobin: Next endpoint is: %s", endpoint)
+	rr.log.Sugar().Debugf("RoundRobin: Next endpoint is: %s", endpoint)
 	return endpoint
 }
 

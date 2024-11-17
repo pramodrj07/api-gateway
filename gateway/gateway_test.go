@@ -3,12 +3,13 @@ package gateway
 import (
 	"context"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"sync"
 	"testing"
+
+	"go.uber.org/zap"
 )
 
 // Mock LoadBalancer implementation
@@ -28,7 +29,8 @@ func (m *MockLoadBalancer) NextEndpoint() string {
 
 // Helper function to create a test gateway
 func createTestGateway(configPath string) *Gateway {
-	logger := log.New(os.Stdout, "test: ", log.Lshortfile)
+	loggerConfig := zap.NewProductionConfig()
+	logger, _ := loggerConfig.Build()
 	ctx := context.Background()
 	lock := &sync.Mutex{}
 	return NewGateway(ctx, lock, configPath, logger)
