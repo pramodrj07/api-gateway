@@ -34,16 +34,17 @@ docker push <user_name>/api-gateway
 
 ### Use the Kubernetes Deployment to Test the Gateway
 ```bash
+cd ../
 # Update the image in deployments/gateway.yaml with the image pushed to DockerHub
 # The deployment files already have the image names that are tested and pushed to DockerHub
-kubectl apply -f deployments/gateway.yaml
+kubectl apply -f deployments/deployment-gateway.yaml
 
 # Deploy the mock services
-kubectl apply -f /workspaces/api-gateway/deployments/deployment-A-1st-instance.yaml
-kubectl apply -f /workspaces/api-gateway/deployments/deployment-A-2nd-instance.yaml
-kubectl apply -f /workspaces/api-gateway/deployments/deployment-A-3rd-instance.yaml
-kubectl apply -f /workspaces/api-gateway/deployments/deployment-B.yaml
-kubectl apply -f /workspaces/api-gateway/deployments/deployment-C.yaml
+kubectl apply -f deployments/deployment-A-1st-instance.yaml
+kubectl apply -f deployments/deployment-A-2nd-instance.yaml
+kubectl apply -f deployments/deployment-A-3rd-instance.yaml
+kubectl apply -f deployments/deployment-B.yaml
+kubectl apply -f deployments/deployment-C.yaml
 
 # Check the status of the pods and wait until they are running
 kubectl get pods
