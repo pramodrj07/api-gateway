@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Gateway represents an API Gateway.
 type Gateway struct {
 	ctx             context.Context
 	watcherChan     chan string
@@ -23,33 +24,7 @@ type Gateway struct {
 	log             *log.Logger
 }
 
-type Config struct {
-	Services map[string]ServiceConfig `yaml:"services"`
-}
-
-type ServiceConfig struct {
-	Endpoints    []string `yaml:"endpoints"`
-	LoadBalancer string   `yaml:"loadBalancer"`
-}
-
-type GatewayServiceConfig struct {
-	serviceName      string
-	loadBalancerType LoadBalancer
-	endpoints        []string
-}
-
-func NewGatewayServiceConfig(serviceName string, loadBalancerType LoadBalancer, endpoints []string) *GatewayServiceConfig {
-	return &GatewayServiceConfig{
-		serviceName:      serviceName,
-		loadBalancerType: loadBalancerType,
-		endpoints:        endpoints,
-	}
-}
-
-type LoadBalancer interface {
-	NextEndpoint() string
-}
-
+// NewGateway creates a new Gateway instance.
 func NewGateway(ctx context.Context, lock *sync.Mutex, configPath string, log *log.Logger) *Gateway {
 	return &Gateway{
 		ctx:             context.Background(),
@@ -61,39 +36,16 @@ func NewGateway(ctx context.Context, lock *sync.Mutex, configPath string, log *l
 	}
 }
 
-func (g *Gateway) loadConfig() error {
-	data, err := os.ReadFile(g.configPath)
-	if err != nil {
-		return err
+// NewGatewayServiceConfig creates a new GatewayServiceConfig instance.
+func NewGatewayServiceConfig(serviceName string, loadBalancerType LoadBalancer, endpoints []string) *GatewayServiceConfig {
+	return &GatewayServiceConfig{
+		serviceName:      serviceName,
+		loadBalancerType: loadBalancerType,
+		endpoints:        endpoints,
 	}
-
-	var config Config
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return err
-	}
-
-	// Update the service registry with the new configuration
-	g.lock.Lock()
-	defer g.lock.Unlock()
-
-	for serviceName, serviceConfig := range config.Services {
-		var lb LoadBalancer
-		switch serviceConfig.LoadBalancer {
-		case "round-robin":
-			lb = NewRoundRobin(serviceConfig.Endpoints, g.log)
-		case "least-connections":
-			lb = NewLeastConnections(serviceConfig.Endpoints, g.log)
-		default:
-			lb = nil
-		}
-
-		g.serviceRegistry[serviceName] = NewGatewayServiceConfig(serviceName, lb, serviceConfig.Endpoints)
-	}
-
-	return nil
 }
 
+// Run starts the API Gateway.
 func (gateway *Gateway) Run() {
 	err := gateway.loadConfig()
 	if err != nil {
@@ -147,6 +99,41 @@ func (gateway *Gateway) Run() {
 	}
 }
 
+// loadConfig loads the configuration from the config file.
+func (g *Gateway) loadConfig() error {
+	data, err := os.ReadFile(g.configPath)
+	if err != nil {
+		return err
+	}
+
+	var config Config
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		return err
+	}
+
+	// Update the service registry with the new configuration
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	for serviceName, serviceConfig := range config.Services {
+		var lb LoadBalancer
+		switch serviceConfig.LoadBalancer {
+		case "round-robin":
+			lb = NewRoundRobin(serviceConfig.Endpoints, g.log)
+		case "least-connections":
+			lb = NewLeastConnections(serviceConfig.Endpoints, g.log)
+		default:
+			lb = nil
+		}
+
+		g.serviceRegistry[serviceName] = NewGatewayServiceConfig(serviceName, lb, serviceConfig.Endpoints)
+	}
+
+	return nil
+}
+
+// updateServiceConfig updates the service configuration.
 func (g *Gateway) updateServiceConfig(chan string) {
 	msg := <-g.watcherChan
 	g.log.Sugar().Infof("Received update event for file: %s", msg)

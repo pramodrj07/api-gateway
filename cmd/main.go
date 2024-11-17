@@ -14,7 +14,6 @@ import (
 
 const (
 	configPath = "config.yaml"
-	APIgateway = "API-gateway"
 )
 
 func main() {
