@@ -11,8 +11,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v2"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type Gateway struct {
@@ -21,10 +19,6 @@ type Gateway struct {
 	lock            *sync.Mutex
 	configPath      string
 	serviceRegistry map[string]*GatewayServiceConfig
-	clientset       *kubernetes.Clientset
-	servicePods     map[string][]string // Maps service name to pod endpoints
-	servicePodsMu   sync.Mutex
-	roundRobinIndex map[string]int // Round-robin index per service
 	log             *log.Logger
 }
 
@@ -56,25 +50,12 @@ type LoadBalancer interface {
 }
 
 func NewGateway(ctx context.Context, lock *sync.Mutex, configPath string, log *log.Logger) *Gateway {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatal("Failed to load in-cluster config")
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatal("Failed to create Kubernetes client")
-	}
-
 	return &Gateway{
 		ctx:             context.Background(),
 		watcherChan:     make(chan string),
 		lock:            lock,
 		configPath:      configPath,
 		serviceRegistry: make(map[string]*GatewayServiceConfig),
-		clientset:       clientset,
-		roundRobinIndex: make(map[string]int),
-		servicePods:     make(map[string][]string),
 		log:             log,
 	}
 }
