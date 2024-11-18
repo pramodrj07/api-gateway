@@ -18,14 +18,13 @@ This is a sample implementation of an API Gateway using Go (Golang). The API Gat
 ### Clone the Repository
 ```bash
 git clone https://github.com/pramodrj07/api-gateway.git
-cd api-gateway
+cd cmd
 go mod tidy
 go run main.go
 ```
 
 ### Build the Docker Image
 ```bash
-cd cmd
 docker build -t api-gateway .
 # push the image to docker hub
 docker tag api-gateway <user_name>/api-gateway
